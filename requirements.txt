@@ -1,0 +1,4 @@
+sqlalchemy
+passlib
+fastapi
+alembic
