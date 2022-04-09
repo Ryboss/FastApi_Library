@@ -11,11 +11,7 @@ class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True)
-<<<<<<< HEAD
-    role = Column(String,unique=False, default='user')
-=======
     role = Column(String, unique=False, default='user')
->>>>>>> 1f936f8d78d3aa4b113a743b65b3428e4e677f1c
     hashed_password = Column(String)
 
     def verify_password(self, password: str):
@@ -28,6 +24,13 @@ class Book(Base):
     title = Column(String, index=True)
     author = Column(String, index=True)
     pages = Column(Integer)
-    in_stock=Column(Boolean, default=False)
+    in_stock = Column(Boolean, default=False)
     date_created = Column(DateTime)
     date_last_updated = Column(DateTime, default=datetime.datetime.utcnow)
+
+class Booking(Base):
+    __tablename__ = 'booking'
+    id = Column(Integer, primary_key=True, index=True)
+    date_create = Column(DateTime, default=datetime.datetime.now())
+    book_title = Column(String)
+    user_email = Column(String)

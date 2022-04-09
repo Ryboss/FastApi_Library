@@ -94,7 +94,17 @@ def create_an_item(item: Book,
 
     return new_item
 
+@app.post('/booking/create')
+def booking_create(booking:Booking, user: schemas.User = fastapi.Depends(services.get_current_user)):
+    new_booking = models.Booking(
+        book_title=booking.book_title,
+        user_email=user.email,
+    )
 
+    db.add(new_booking)
+    db.commit()
+
+    return f"Successfull booking {new_booking.book_title} create"
 @app.put('/books/{book_id}', response_model=Book, status_code=fastapi.status.HTTP_200_OK)
 def update_an_item(item_id: int, item: Book, user: models.User= fastapi.Depends(services.get_current_user)):
     if user.role not in roles:

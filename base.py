@@ -1,2 +1,2 @@
-from database import Base
 from models import *
+from database import Base

@@ -31,3 +31,13 @@ class Book(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+
+class Booking(BaseModel):
+    id:int
+    book_title:str
+
+
+    class Config:
+        orm_mode = True
