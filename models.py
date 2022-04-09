@@ -11,11 +11,7 @@ class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
     email = Column(String, unique=True, index=True)
-<<<<<<< HEAD
     role = Column(String,unique=False, default='user')
-=======
-    role = Column(String, unique=False, default='user')
->>>>>>> 1f936f8d78d3aa4b113a743b65b3428e4e677f1c
     hashed_password = Column(String)
 
     def verify_password(self, password: str):
