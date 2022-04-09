@@ -49,8 +49,8 @@ async def get_user(user: schemas.User = fastapi.Depends(services.get_current_use
 
 @app.put('/api/user/{user_id}', response_model=User, status_code=fastapi.status.HTTP_200_OK)
 def update_an_item(user_id: int, user1: User, user: models.User= fastapi.Depends(services.get_current_user)):
-    if user.role not in roles:
-        raise fastapi.HTTPException(status_code=401, detail=f"Your role is not included in {roles}")
+    # if user.role not in roles:
+    #     raise fastapi.HTTPException(status_code=401, detail=f"Your role is not included in {roles}")
     user_role_update = db.query(models.User).filter(models.User.id == user_id).first()
     user_role_update.role = user1.role
 
@@ -100,11 +100,18 @@ def booking_create(booking:Booking, user: schemas.User = fastapi.Depends(service
         book_title=booking.book_title,
         user_email=user.email,
     )
+    db_book = db.query(models.Book).filter(models.Book.title == booking.book_title).first()
 
+    print(db_book.in_stock)
+    if not db_book or db_book.in_stock == False:
+        raise fastapi.HTTPException(status_code=401, detail=f"We havent book {booking.book_title} or book booked")
+    db_book.in_stock = False
     db.add(new_booking)
     db.commit()
 
     return f"Successfull booking {new_booking.book_title} create"
+
+
 @app.put('/books/{book_id}', response_model=Book, status_code=fastapi.status.HTTP_200_OK)
 def update_an_item(item_id: int, item: Book, user: models.User= fastapi.Depends(services.get_current_user)):
     if user.role not in roles:

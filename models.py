@@ -24,7 +24,7 @@ class Book(Base):
     title = Column(String, index=True)
     author = Column(String, index=True)
     pages = Column(Integer)
-    in_stock = Column(Boolean, default=False)
+    in_stock = Column(Boolean, default=True)
     date_created = Column(DateTime)
     date_last_updated = Column(DateTime, default=datetime.datetime.utcnow)
 
