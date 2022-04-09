@@ -17,6 +17,7 @@ db=SessionLocal()
 roles = ('admin', 'librarian')
 
 #Users
+#Create user
 @app.post("/api/users")
 async def create_user(
     user: schemas.UserCreate, db: _orm.Session = fastapi.Depends(services.get_db)
@@ -29,7 +30,7 @@ async def create_user(
 
     return await services.create_token(user)
 
-
+#Login user
 @app.post("/api/token")
 async def generate_token(
     form_data: security.OAuth2PasswordRequestForm = fastapi.Depends(),
@@ -42,11 +43,11 @@ async def generate_token(
 
     return await services.create_token(user)
 
-
+#Get info auth user
 @app.get("/api/users/me", response_model=schemas.User)
 async def get_user(user: schemas.User = fastapi.Depends(services.get_current_user)):
     return user
-
+#Get role for users
 @app.put('/api/user/{user_id}', response_model=User, status_code=fastapi.status.HTTP_200_OK)
 def update_an_item(user_id: int, user1: User, user: models.User= fastapi.Depends(services.get_current_user)):
     # if user.role not in roles:
@@ -59,18 +60,19 @@ def update_an_item(user_id: int, user1: User, user: models.User= fastapi.Depends
     return user_role_update
 
 #Books
+#See all books
 @app.get('/books', response_model=List[Book], status_code=200)
 def get_all_items():
     items = db.query(models.Book).all()
     return items
 
-
+#See book for id
 @app.get('/books/{books_id}', response_model=Book, status_code=fastapi.status.HTTP_200_OK)
 def get_an_item(item_id: int):
     item = db.query(models.Book).filter(models.Book.id == item_id).first()
     return item
 
-
+#Create book
 @app.post('/books', response_model=Book,
           status_code=fastapi.status.HTTP_201_CREATED)
 def create_an_item(item: Book,
@@ -93,7 +95,7 @@ def create_an_item(item: Book,
     db.commit()
 
     return new_item
-
+#Create bookig
 @app.post('/booking/create')
 def booking_create(booking:Booking, user: schemas.User = fastapi.Depends(services.get_current_user)):
     new_booking = models.Booking(
@@ -101,17 +103,17 @@ def booking_create(booking:Booking, user: schemas.User = fastapi.Depends(service
         user_email=user.email,
     )
     db_book = db.query(models.Book).filter(models.Book.title == booking.book_title).first()
-
-    print(db_book.in_stock)
+    #Если книга существует в бибилотеке и есть в наличии, то создается бронирование
     if not db_book or db_book.in_stock == False:
         raise fastapi.HTTPException(status_code=401, detail=f"We havent book {booking.book_title} or book booked")
+    #После бронирования перенная in_stock=False 
     db_book.in_stock = False
     db.add(new_booking)
     db.commit()
 
     return f"Successfull booking {new_booking.book_title} create"
 
-
+#Update book
 @app.put('/books/{book_id}', response_model=Book, status_code=fastapi.status.HTTP_200_OK)
 def update_an_item(item_id: int, item: Book, user: models.User= fastapi.Depends(services.get_current_user)):
     if user.role not in roles:
@@ -126,7 +128,7 @@ def update_an_item(item_id: int, item: Book, user: models.User= fastapi.Depends(
 
     return item_to_update
 
-
+#Deleate book
 @app.delete('/book/{book_id}')
 def delete_item(item_id: int,
                 user: models.User= fastapi.Depends(services.get_current_user)):
