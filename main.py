@@ -9,19 +9,26 @@ import sqlalchemy.orm as _orm
 from database import SessionLocal
 import services
 import schemas
-#Hello git
-app = fastapi.FastAPI()
+
+
+app = fastapi.FastAPI(title="Система для \n высших образовательных учреждений",
+                      description="Система позволяющая размещать вакансии на работу на сайте  университета")
 
 db=SessionLocal()
 
 roles = ('admin', 'librarian')
 
-#Users
-#Create user
+
+# Пользователи
+
 @app.post("/api/users")
 async def create_user(
     user: schemas.UserCreate, db: _orm.Session = fastapi.Depends(services.get_db)
 ):
+    """
+    Создание пользователя
+    """
+
     db_user = await services.get_user_by_email(user.email, db)
     if db_user:
         raise fastapi.HTTPException(status_code=400, detail="Email already in use")
@@ -30,12 +37,13 @@ async def create_user(
 
     return await services.create_token(user)
 
-#Login user
+
 @app.post("/api/token")
 async def generate_token(
     form_data: security.OAuth2PasswordRequestForm = fastapi.Depends(),
     db: _orm.Session = fastapi.Depends(services.get_db),
 ):
+
     user = await services.authenticate_user(form_data.username, form_data.password, db)
 
     if not user:
@@ -43,13 +51,19 @@ async def generate_token(
 
     return await services.create_token(user)
 
-#Get info auth user
+
 @app.get("/api/users/me", response_model=schemas.User)
 async def get_user(user: schemas.User = fastapi.Depends(services.get_current_user)):
+    """Получение авторизированного пользователя"""
+
     return user
-#Get role for users
+
+
 @app.put('/api/user/{user_id}', response_model=User, status_code=fastapi.status.HTTP_200_OK)
-def update_an_item(user_id: int, user1: User, user: models.User= fastapi.Depends(services.get_current_user)):
+def update_user(user_id: int, user1: User, user: models.User= fastapi.Depends(services.get_current_user)):
+    """
+    Обновление пользователя
+    """
     # if user.role not in roles:
     #     raise fastapi.HTTPException(status_code=401, detail=f"Your role is not included in {roles}")
     user_role_update = db.query(models.User).filter(models.User.id == user_id).first()
@@ -59,80 +73,103 @@ def update_an_item(user_id: int, user1: User, user: models.User= fastapi.Depends
 
     return user_role_update
 
-#Books
-#See all books
-@app.get('/books', response_model=List[Book], status_code=200)
-def get_all_items():
-    items = db.query(models.Book).all()
-    return items
+# Роли пользователей
+@app.get('/api/all_roles', response_model=List[RoleBase], status_code=200)
+async def all_roles():
 
-#See book for id
-@app.get('/books/{books_id}', response_model=Book, status_code=fastapi.status.HTTP_200_OK)
-def get_an_item(item_id: int):
-    item = db.query(models.Book).filter(models.Book.id == item_id).first()
-    return item
+    query = db.query(models.Roles).all()
+    print(List[query])
+    return query
 
-#Create book
-@app.post('/books', response_model=Book,
-          status_code=fastapi.status.HTTP_201_CREATED)
-def create_an_item(item: Book,
-                   user: schemas.User = fastapi.Depends(services.get_current_user)):
-    if user.role not in roles:
-        raise fastapi.HTTPException(status_code=401, detail=f"Your role is not included in {roles}")
-    db_item = db.query(models.Book).filter(models.Book.title == item.title).first()
-
-    if db_item is not None:
-        raise fastapi.HTTPException(status_code=400, detail="Item already exists")
-
-    new_item = models.Book(
-        title=item.title,
-        author=item.author,
-        pages=item.pages,
-        in_stock=item.in_stock
+@app.post('/api/add_role')
+async def create_role(item: RoleBase):
+    new_item = models.Roles(
+        role_name=item.role_name,
+        role_alias=item.role_alias
     )
 
     db.add(new_item)
     db.commit()
 
     return new_item
-#Create bookig
-@app.post('/booking/create')
-def booking_create(booking:Booking, user: schemas.User = fastapi.Depends(services.get_current_user)):
-    new_booking = models.Booking(
-        book_title=booking.book_title,
-        user_email=user.email,
+# Вакансии
+@app.get('/vacancy', response_model=List[WorkBase], status_code=200)
+async def get_all_items():
+    """Получение всех вакансий"""
+
+    items = db.query(models.Work).all()
+    return items
+
+
+@app.get('/vacancy/{vacancy_id}', response_model=WorkBase, status_code=fastapi.status.HTTP_200_OK)
+async def get_an_item(item_id: int):
+    """Получение вакансии по id"""
+
+    item = db.query(models.Work).filter(models.Work.id == item_id).first()
+    return item
+
+
+@app.post('/vacancy', response_model=WorkBase,
+          status_code=fastapi.status.HTTP_201_CREATED)
+async def create_item(item: WorkBase,
+                   user: schemas.User = fastapi.Depends(services.get_current_user)):
+    """
+    Создание вакансии
+    """
+    # if user.role not in roles:
+    #     raise fastapi.HTTPException(status_code=401, detail=f"Your role is not included in {roles}")
+    # db_item = db.query(models.Work).filter(models.Work.title == item.title).first()
+
+    # if db_item is not None:
+    #     raise fastapi.HTTPException(status_code=400, detail="Item already exists")
+
+    new_item = models.Work(
+
+        name_company=item.name_company,
+        company_description=item.company_description,
+        name_vacancy=item.name_vacancy,
+        vacance_description=item.vacance_description,
+        salary_from=item.salary_from,
+        salary_up_to=item.salary_up_to,
     )
-    db_book = db.query(models.Book).filter(models.Book.title == booking.book_title).first()
-    #Если книга существует в бибилотеке и есть в наличии, то создается бронирование
-    if not db_book or db_book.in_stock == False:
-        raise fastapi.HTTPException(status_code=401, detail=f"We havent book {booking.book_title} or book booked")
-    #После бронирования перенная in_stock=False 
-    db_book.in_stock = False
-    db.add(new_booking)
+
+    db.add(new_item)
     db.commit()
 
-    return f"Successfull booking {new_booking.book_title} create"
+    return new_item
 
-#Update book
-@app.put('/books/{book_id}', response_model=Book, status_code=fastapi.status.HTTP_200_OK)
-def update_an_item(item_id: int, item: Book, user: models.User= fastapi.Depends(services.get_current_user)):
+
+
+@app.put('/vacancy/{vacancy_id}', response_model=WorkBase, status_code=fastapi.status.HTTP_200_OK)
+async def update_item(item_id: int, item: WorkBase, user: models.User= fastapi.Depends(services.get_current_user)):
+    """
+    Обновление вакансии 
+    """
+
     if user.role not in roles:
         raise fastapi.HTTPException(status_code=401, detail=f"Your role is not included in {roles}")
-    item_to_update = db.query(models.Book).filter(models.Book.id == item_id).first()
-    item_to_update.title = item.title
-    item_to_update.author = item.author
-    item_to_update.pages = item.pages
-    item_to_update.in_stock = item.in_stock
+    item_to_update = db.query(models.Work).filter(models.Work.id == item_id).first()
+    item_to_update.name_company = item.name_company
+    item_to_update.company_description = item.company_description
+    item_to_update.name_vacancy = item.name_vacancy
+    item_to_update.vacance_description = item.vacance_description
+    item_to_update.salary_from = item.salary_from
+    item_to_update.salary_up_to = item.salary_up_to
 
     db.commit()
 
     return item_to_update
 
-#Deleate book
-@app.delete('/book/{book_id}')
-def delete_item(item_id: int,
+
+@app.delete('/vacancy/{vacancy_id}')
+async def delete_item(item_id: int,
                 user: models.User= fastapi.Depends(services.get_current_user)):
-    item_to_delete = db.query(models.Book).filter(models.Book.id == item_id).first()
+    """
+    Удаление вакансии
+    """
+
+    item_to_delete = db.query(models.Work).filter(models.Work.id == item_id).first()
+
     if user.role not in roles:
         raise fastapi.HTTPException(status_code=401, detail=f"Your role is not included in {roles}")
     if item_to_delete is None:

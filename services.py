@@ -30,7 +30,15 @@ async def get_user_by_email(email: str, db: orm.Session):
 
 async def create_user(user: schemas.UserCreate, db: orm.Session):
     user_obj = models.User(
-        email=user.email, hashed_password=hash.bcrypt.hash(user.hashed_password)
+        email=user.email,
+        hashed_password=hash.bcrypt.hash(user.hashed_password),
+        username=user.username,
+        first_name=user.first_name,
+        last_name=user.last_name,
+        middle_name=user.middle_name,
+        phone=user.phone,
+        company_id=user.company_id,
+        role=user.role
     )
     db.add(user_obj)
     db.commit()
@@ -71,15 +79,3 @@ async def get_current_user(
         )
 
     return schemas.User.from_orm(user)
-
-
-
-
-
-
-
-
-
-
-
-
